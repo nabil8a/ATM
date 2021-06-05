@@ -3,27 +3,48 @@ import time
 import json
 from getpass import getpass
 import random
+import os
 
-optionList = ["Withdrawal", "Cash Deposit", "Complaint", "Loggout"]
-userId = -1
-bankAccounts = {
-    '000': {"name": "nail", "password": "pass", "Email": "Nail@mail.com", "age": 18, "$": 50.00, 'complaint': {}}}
+optionList = ["Withdrawal", "Cash Deposit", "Complaint", "Logout"]
+userId = '-1'
+# bankAccounts = {'000': {"name": "nail", "password": "pass", "Email": "Nail@mail.com", "age": 18, "$": 50.00, 'complaint': {}}}
+bankAccounts = {}
 
 
-def saveFile():
-    f = open("dataSaved.txt", "w")
+def save_file(account_number, user_detail):
+    """ f = open("dataSaved.txt", "w")
     f.write(json.dumps(bankAccounts))
-    f.close
+    f.close()"""
+    f = open('data/%s.txt' % account_number, 'w')
+    f.write(json.dumps(user_detail))
+    f.close()
 
 
-def readFile():
+def readFile(account_number):
     global bankAccounts
     try:
-        f = open('dataSaved.txt', 'r')
+        f = open('data/%s.txt' % account_number, 'r')
         bankAccounts = json.loads(f.read())
         f.close()
-    except:
-        saveFile()
+    except FileNotFoundError:
+        pass
+    finally:
+        pass
+# except:save_file()
+def updateRec(userId):
+    f = open('data/%s.txt' %userId, 'w')
+    f.write(json.dumps(bankAccounts))
+    f.close()
+
+def auth_session(userId,action):
+    if action == 'start':
+        s = open('data/sessionID_%s.txt' %userId, 'w')
+        s.write(userId)
+        s.close()
+    elif action == 'stop':
+        os.remove('data/sessionID_%s.txt' %userId)
+    else:
+        pass
 
 
 def Withdrawal(userId):
@@ -74,22 +95,24 @@ def Complaint(userId):
 
 def mainMenu():
     global userId
-    saveFile()
+    global bankAccounts
     now = datetime.datetime.now()
-    print("Wellcome %s" % ((bankAccounts[userId]['name'])), now.strftime("%x " + "%H"":""%M %p"),
+    print("Wellcome %s" % (bankAccounts[userId]['name']), now.strftime("%x " + "%H"":""%M %p"),
           "\nthese are the available options")
     for i in range(len(optionList)):
         print(i + 1, optionList[i])
     selectedOption = int(input("Please select an option \n"))
-    if (selectedOption == 1):  # Withdrawal
+    if selectedOption == 1:  # Withdrawal
         Withdrawal(userId)
-
-    elif (selectedOption == 2):  # Deposit
+    elif selectedOption == 2:  # Deposit
         Deposit(userId)
-    elif (selectedOption == 3):  # Complaint
+    elif selectedOption == 3:  # Complaint
         Complaint(userId)
-    elif (selectedOption == 4):
+    elif selectedOption == 4:
+        updateRec(userId)
+        auth_session(userId,'stop')
         userId = int(-1)
+        bankAccounts = {}
         homeScreen()
     else:
         print("Invalid option selected, Please try again")
@@ -98,12 +121,14 @@ def mainMenu():
 def logIn():
     global userId
     num = input("what is your account #? \n")
+    readFile(num)
 
-    if (num in bankAccounts.keys()):
+    if num in bankAccounts.keys():
         password = getpass("Enter your password \n")
-        if (password == bankAccounts[num]['password']):
+        if password == bankAccounts[num]['password']:
             print("yey")
             userId = num
+            auth_session(userId,'start')
             mainMenu()
         else:
             print("wrong Password")
@@ -117,18 +142,18 @@ def logIn():
 def registerAccount():
     name = input("what is your First name \n")
     password = input("choose a New password \n")
-    Email = input("what is your Email Address \n")
+    email = input("what is your email Address \n")
     age = int(input("what is your age \n"))
-    if (age < 18):
+    if age < 18:
         print('YOU CAN NOT REGISTER WITHOUT A GUARDIAN/PARENT')
         time.sleep(4)
         homeScreen()
     mny = int(input("How much would you like to open your account with? \n"))
     accNum = str(len(bankAccounts) + 1) + str(age) + str(random.randrange(100, 999))
-    bankAccounts[accNum] = {"name": name, "password": password, "Email": Email, "age": age, "$": mny, 'complaint': {}}
+    bankAccounts[accNum] = {"name": name, "password": password, "email": email, "age": age, "$": mny, 'complaint': {}}
     print("your account number is %s" % accNum)
 
-    saveFile()
+    save_file(accNum, bankAccounts)
     logIn()
 
 
@@ -136,14 +161,16 @@ def homeScreen():
     while True:
         print(' 1. login \n 2. register')
         selectOp = int(input("Please select an option \n"))
-        if (selectOp == 1):
+        if selectOp == 1:
             logIn()
             mainMenu()
-        elif (selectOp == 2):
+        elif selectOp == 2:
             registerAccount()
+        elif selectOp == 0:
+            break
         else:
             print("Invalid option")
 
 
-readFile()
+# readFile()
 homeScreen()
